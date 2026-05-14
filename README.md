@@ -44,7 +44,7 @@ git clone https://github.com/lucasaguiar-la/linux-android.git
 cd linux-android
 
 # Da permissões para executar o script
-chmod +X script-termux.sh
+chmod +x script-termux.sh
 
 # Executa o script de instalação
 ./script-termux.sh
@@ -53,6 +53,10 @@ chmod +X script-termux.sh
 9. Aguarde a instalação ser concluída
 10. Rode o script:
 ```
+# Navegue para a home
+cd
+
+# Execute o script
 ./start-linux.sh
 ```
 11. Instale o [Termux X11](https://github.com/termux/termux-x11/releases/tag/nightly) para acessar a interface gráfica
