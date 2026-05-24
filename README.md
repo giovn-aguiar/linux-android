@@ -185,6 +185,94 @@ Salve o arquivo (`CTRL + O`, depois `Enter`) e saia (`CTRL + X`).
 
 ---
 
+## FAQ
+
+Aqui estão as respostas para as dúvidas mais comuns sobre o projeto. Clique na pergunta para expandir.
+
+<details>
+<summary><b>1. Consigo rodar o VS Code, Chrome ou programas pesados nesse ambiente?</b></summary>
+<br>
+O VS Code (versão OSS para ARM64) e navegadores como o Chromium rodam, mas o desempenho depende diretamente do processador e da RAM do seu Android. Dispositivos com menos de 4GB de RAM podem sofrer travamentos ao abrir muitos apps ao mesmo tempo.
+</details>
+
+<details>
+<summary><b>2. O projeto precisa de ROOT no celular?</b></summary>
+<br>
+<b>Não!</b> O script foi projetado para rodar completamente em modo <i>rootless</i> (sem root) usando o PRoot para emular o sistema de arquivos Linux. Isso garante que qualquer aparelho saia de fábrica pronto para virar um Cyberdeck sem riscos de segurança.
+</details>
+
+<details>
+<summary><b>3. Por que meu Linux fecha sozinho depois de alguns minutos?</b></summary>
+<br>
+Isso geralmente acontece porque o sistema de gerenciamento de bateria do Android (especialmente em interfaces como MIUI, OneUI ou em aparelhos Android 12+) "mata" processos em segundo plano. Certifique-se de seguir o <b>Passo 1 (Desativar restrições de processos filhos)</b> na seção de Instalação para corrigir isso. Vale ressaltar que o Termux e Termux X11 você deve verificar a <b>restrição de uso de bateria</b>. Geralmente fica em <b>Economia de bateria</b> (Battery saver), mude para <b>Sem restrições</b> (No restrictions).
+</details>
+
+<details>
+<summary><b>4. Posso instalar jogos da Steam ou apps de PC normal (.exe ou x86)?</b></summary>
+<br>
+
+Nativamente não, porque o seu Android usa um processador de arquitetura <b>ARM</b>, e a maioria dos softwares de PC comuns são feitos para arquitetura <b>x86/x64</b>. Para rodar programas x86, você precisaria configurar ferramentas de tradução como o <i>Box64</i> ou <i>Fex-Emu</i> dentro do ambiente. Entretanto, isso não lhe impedi de testar jogos de plataformas como <b>Steam, Heroic, Epic Games, etc</b> e análisar o seu desempenho (recomendo compartilhar sua experiência com a comunidade), os principais problemas que você deve encontrar é seu processador, memória RAM, armazenamento interno, etc.
+</details>
+
+<details>
+<summary><b>5. O som e o microfone funcionam dentro do Linux?</b></summary>
+<br>
+Para o áudio funcionar, é necessário configurar o servidor PulseAudio no Termux. O script atual foca na estabilidade do ambiente gráfico.
+</details>
+
+<details>
+<summary><b>6. Qual a diferença entre usar o modo DeX, uma Custom ROM ou este Cyberdeck?</b></summary>
+<br>
+
+Se você quer usar o Android como um computador, existem três caminhos principais. Cada um oferece um nível diferente de controle, liberdade e conhecimento técnico:
+
+*   <b>Samsung DeX (e similares):</b> É apenas uma "roupagem" visual (Launcher) oficial sobre o próprio Android. Os aplicativos ainda são os apps normais do celular (<code>.apk</code>). É estável, mas totalmente limitado às regras da fabricante. Você não tem um terminal Linux real nem pode instalar pacotes via <code>apt</code> ou outro Gerenciador de Pacotes.
+*   <b>Custom ROM (Ex: LineageOS):</b> Uma Custom ROM é uma versão do Android modificada por desenvolvedores e entusiastas que oferece uma experiência adaptada e otimizada. Essas ROMs trazem recursos ausentes nas builds oficiais dos fabricantes, como melhorias de desempenho, novas funções, interfaces personalizadas e a possibilidade de remover apps pré‑instalados indesejados.
+*   <b>Cyberdeck:</b> Roda um Linux completo e independente <b>lado a lado</b> com o seu Android atual através de emulação no espaço de usuário (usando <code>PRoot</code> e <code>Termux X11</code>). O risco é **zero** (não precisa de root), você mantém as funções do celular intactas e ganha total liberdade de um ecossistema Linux real.
+
+<br>
+
+<table width="100%">
+    <thead>
+        <tr align="left">
+            <th>Característica</th>
+            <th>Samsung DeX</th>
+            <th>Custom ROM</th>
+            <th>Cyberdeck</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><b>Risco de quebrar o aparelho</b></td>
+            <td>⚪ Nenhum</td>
+            <td>🔴 Risco de <i>Brick</i></td>
+            <td>⚪ Nenhum</td>
+        </tr>
+        <tr>
+            <td><b>Exige modificação avançada</b></td>
+            <td>Não (Nativo apenas para Samsung)</td>
+            <td>Sim (Desbloquear Bootloader)</td>
+            <td>Não (Apenas instalar apps)</td>
+        </tr>
+        <tr>
+            <td><b>O que roda por baixo</b></td>
+            <td>Apps Android</td>
+            <td>ROM modificada</td>
+            <td>Distribuição Linux</td>
+        </tr>
+        <tr>
+            <td><b>Ferramentas de Dev</b></td>
+            <td>Muito limitado</td>
+            <td>Depende da ROM instalada, liberdade total</td>
+            <td><b>Liberdade Total</b></td>
+        </tr>
+    </tbody>
+</table>
+<br>
+</details>
+
+---
+
 ## Licença
 
-Este projeto está sob a licença correspondente do repositório. Veja o arquivo [LICENSE](LICENSE.md) para mais detalhes.
+Este projeto está sob a licença correspondente do repositório. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
