@@ -1,149 +1,171 @@
 #!/data/data/com.termux/files/usr/bin/bash
+# Ponto de entrada modular para Configuração do Termux Linux/X11
+# Entrypoint for Termux Linux/X11 Configuration
 
-# Script Linux simplificado para Termux
+set -Eeuo pipefail
+IFS=$'\n\t'
 
-# ============== CONFIGURAÇÃO BÁSICA ==============
-DE_CHOICE="1"
-DE_NAME="XFCE4"
-GPU_DRIVER=""
+# Define o diretório do script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export SCRIPT_DIR
 
-# ============== FUNÇÕES SIMPLIFICADAS ==============
-print_step() {
-    echo "[$1/$2] $3"
-} 
+# 1. Carrega o core (common e i18n)
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/common.sh"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/i18n.sh"
 
-install_pkg() {
-    echo "  -> Instalando $1..."
-    apt-get install -y -q $1 > /dev/null 2>&1
+# 2. Carrega todos os outros módulos de biblioteca
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/checks.sh"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/device.sh"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/desktop.sh"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/apps.sh"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/wine.sh"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/themes.sh"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/scripts.sh"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/backup.sh"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/lib/menu.sh"
+
+# Armadilha de erro configurada no common.sh
+trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
+trap '_stop_spinner' EXIT
+
+# Processamento de flags da CLI
+show_help() {
+    echo "Uso / Usage: ./script-termux.sh [opções / options]"
+    echo ""
+    echo "Opções / Options:"
+    echo "  --help, -h          Mostra esta mensagem de ajuda / Show this help message"
+    echo "  --install           Inicia a instalação completa automática / Start automated full installation"
+    echo "  --desktop [de]      Instala um desktop específico (xfce4, lxqt, mate, kde) / Install specific desktop"
+    echo "  --app [nome]        Instala um aplicativo específico do catálogo / Install a specific app from catalog"
+    echo "  --lang [pt|en]      Força o idioma do script / Force script language"
+    echo ""
+    exit 0
 }
 
-# ============== DETECÇÃO DO DISPOSITIVO ==============
-echo "=== Configurando Termux Linux ==="
-echo ""
+# Define variáveis para as ações CLI
+ACTION="menu"
+DESKTOP_ARG=""
+APP_ARG=""
+FORCE_LANG=""
 
-DEVICE_BRAND=$(getprop ro.product.brand 2>/dev/null || echo "Unknown")
-GPU_VENDOR=$(getprop ro.hardware.egl 2>/dev/null || echo "")
+# Processamento de argumentos
+while (( "$#" )); do
+    case "$1" in
+        -h|--help)
+            show_help
+            ;;
+        --install)
+            ACTION="install"
+            shift
+            ;;
+        --desktop)
+            ACTION="desktop"
+            if [ -n "${2:-}" ]; then
+                DESKTOP_ARG="$2"
+                shift 2
+            else
+                echo "Erro: Faltou especificar o desktop (xfce4, lxqt, mate, kde)." >&2
+                exit 1
+            fi
+            ;;
+        --app)
+            ACTION="app"
+            if [ -n "${2:-}" ]; then
+                APP_ARG="$2"
+                shift 2
+            else
+                echo "Erro: Faltou especificar o nome do aplicativo." >&2
+                exit 1
+            fi
+            ;;
+        --lang)
+            if [ -n "${2:-}" ]; then
+                FORCE_LANG="$2"
+                shift 2
+            else
+                echo "Erro: Faltou especificar o idioma (pt, en)." >&2
+                exit 1
+            fi
+            ;;
+        *)
+            echo "Erro: Flag não suportada / Unsupported flag: $1" >&2
+            show_help
+            ;;
+    esac
+done
 
-echo "Dispositivo: $DEVICE_BRAND"
+# Inicialização e detecção de idioma
+load_config || true
 
-# ============== SELEÇÃO DO DESKTOP ==============
-echo ""
-echo "Escolha o Desktop:"
-echo "1) XFCE4 (recomendado)"
-echo "2) LXQt (leve)"
-echo "3) MATE (médio)"
-echo "4) KDE (pesado)"
-read -p "Opção [1-4, padrão=1]: " DE_INPUT
-DE_INPUT=${DE_INPUT:-1}
-
-case $DE_INPUT in
-    1) DE_NAME="XFCE4";;
-    2) DE_NAME="LXQt";;
-    3) DE_NAME="MATE";;
-    4) DE_NAME="KDE Plasma";;
-esac
-echo "Selecionado: $DE_NAME"
-
-# ============== INSTALAÇÃO (11 PASSOS) ==============
-TOTAL=11
-CURRENT=0
-
-# Passo 1
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Atualizando sistema"
-apt-get update -y -q > /dev/null 2>&1
-apt-get upgrade -y -q > /dev/null 2>&1
-
-# Passo 2
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Adicionando repositórios"
-apt-get install -y -q x11-repo tur-repo > /dev/null 2>&1
-
-# Passo 3
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Instalando servidor gráfico"
-apt-get install -y -q termux-x11-nightly xorg-xrandr > /dev/null 2>&1
-
-# Passo 4
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Instalando $DE_NAME"
-case $DE_INPUT in
-    1) install_pkg "xfce4 xfce4-terminal xfce4-whiskermenu-plugin plank-reloaded thunar mousepad";;
-    2) install_pkg "lxqt qterminal pcmanfm-qt featherpad";;
-    3) install_pkg "mate mate-tweak plank-reloaded mate-terminal";;
-    4) install_pkg "plasma-desktop konsole dolphin";;
-esac
-
-# Passo 5
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Instalando drivers GPU"
-apt-get install -y -q mesa-zink vulkan-loader-android > /dev/null 2>&1
-[ "$GPU_DRIVER" == "freedreno" ] && apt-get install -y -q mesa-vulkan-icd-freedreno > /dev/null 2>&1
-
-# Passo 6
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Instalando áudio"
-apt-get install -y -q pulseaudio > /dev/null 2>&1
-
-# Passo 7
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Instalando apps"
-apt-get install -y -q firefox vlc git wget curl > /dev/null 2>&1
-
-# Passo 8
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Instalando Python"
-apt-get install -y -q python > /dev/null 2>&1
-pip install flask > /dev/null 2>&1
-
-# Passo 9
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Instalando Wine"
-apt-get remove -y wine-stable > /dev/null 2>&1
-apt-get install -y -q hangover-wine hangover-wowbox64 > /dev/null 2>&1
-ln -sf /data/data/com.termux/files/usr/opt/hangover-wine/bin/wine /data/data/com.termux/files/usr/bin/wine 2>/dev/null
-
-# Passo 10
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Criando scripts"
-cat > ~/start-linux.sh << 'EOF'
-#!/data/data/com.termux/files/usr/bin/bash
-pkill -9 -f "termux.x11" 2>/dev/null
-pulseaudio --kill 2>/dev/null
-sleep 1
-pulseaudio --start --exit-idle-time=-1
-export PULSE_SERVER=127.0.0.1
-termux-x11 :0 -ac &
-sleep 2
-export DISPLAY=:0
-EOF
-
-if [ "$DE_INPUT" == "1" ]; then
-    echo "exec startxfce4" >> ~/start-linux.sh
-elif [ "$DE_INPUT" == "2" ]; then
-    echo "exec startlxqt" >> ~/start-linux.sh
-elif [ "$DE_INPUT" == "3" ]; then
-    echo "exec mate-session" >> ~/start-linux.sh
+if [ -n "$FORCE_LANG" ]; then
+    case "$FORCE_LANG" in
+        pt|en) load_language "$FORCE_LANG" ;;
+        *)     echo "Idioma inválido. Opções: pt, en. / Invalid language. Options: pt, en." >&2; exit 1 ;;
+    esac
 else
-    echo "exec startplasma-x11" >> ~/start-linux.sh
+    detect_language
 fi
 
-chmod +x ~/start-linux.sh
+# Agora executa a verificação obrigatória de ambiente
+require_termux
 
-cat > ~/stop-linux.sh << 'EOF'
-#!/data/data/com.termux/files/usr/bin/bash
-pkill -9 -f "termux.x11" 2>/dev/null
-pkill -9 pulseaudio 2>/dev/null
-echo "Desktop finalizado"
-EOF
-chmod +x ~/stop-linux.sh
+# Executa a ação selecionada
+case "$ACTION" in
+    install)
+        full_install
+        ;;
+    desktop)
+        case "$(echo "$DESKTOP_ARG" | tr '[:upper:]' '[:lower:]')" in
+            xfce4) _set_desktop_vars 1 ;;
+            lxqt)  _set_desktop_vars 2 ;;
+            mate)  _set_desktop_vars 3 ;;
+            kde)   _set_desktop_vars 4 ;;
+            *)     die "Desktop inválido. Opções: xfce4, lxqt, mate, kde." ;;
+        esac
+        install_desktop
+        save_config
+        ;;
+    app)
+        # Procura o app no catálogo apps.conf
+        app_found=false
+        app_pkg=""
+        app_name=""
+        while IFS='|' read -r _cat name pkg; do
+            clean_name="$(echo "$name" | tr '[:upper:]' '[:lower:]')"
+            clean_pkg="$(echo "$pkg" | tr '[:upper:]' '[:lower:]')"
+            target_arg="$(echo "$APP_ARG" | tr '[:upper:]' '[:lower:]')"
+            if [[ "$clean_name" == *"$target_arg"* ]] || [[ "$clean_pkg" == *"$target_arg"* ]]; then
+                app_pkg="$pkg"
+                app_name="$name"
+                app_found=true
+                break
+            fi
+        done < "${SCRIPT_DIR}/apps.conf"
 
-# Passo 11
-CURRENT=$((CURRENT+1)); print_step $CURRENT $TOTAL "Criando atalhos"
-mkdir -p ~/Desktop
-cat > ~/Desktop/Firefox.desktop << 'EOF'
-[Desktop Entry]
-Name=Firefox
-Exec=firefox
-Type=Application
-EOF
-chmod +x ~/Desktop/*.desktop 2>/dev/null
-
-# ============== FINALIZAÇÃO ==============
-echo ""
-echo "=== INSTALAÇÃO CONCLUÍDA ==="
-echo ""
-echo "Para iniciar o desktop: ./start-linux.sh"
-echo "Para parar: ./stop-linux.sh"
-echo "Abra o app Termux-X11 para ver a interface"
-echo ""
+        if [ "$app_found" = true ]; then
+            info "$(t installing "$app_name")"
+            # shellcheck disable=SC2086
+            install_with_retry $app_pkg || die "$(t optional_pkg_failed "$app_name")"
+        else
+            die "Aplicativo '$APP_ARG' não encontrado no catálogo apps.conf."
+        fi
+        ;;
+    menu)
+        # Se for a primeira execução (sem desktop configurado no config.env), perguntar o idioma primeiro.
+        if [ -z "${DE_NAME:-}" ] && [ ! -f "${STATE_DIR}/config.env" ]; then
+            choose_language
+        fi
+        main_menu
+        ;;
+esac
