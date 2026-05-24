@@ -73,7 +73,7 @@ git clone https://github.com/lucasaguiar-la/linux-android.git
 cd linux-android
 
 # Da permissões para executar o script
-chmod +X script-termux.sh
+chmod +x script-termux.sh
 
 # Executa o script de instalação
 ./script-termux.sh
