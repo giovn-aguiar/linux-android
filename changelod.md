@@ -12,3 +12,8 @@ Todas as alterações feitas no repositório serão encontradas nesse arquivo.
 * `README.md` adicionado aba de FAQ
 
 ---
+
+## v1.2
+
+**Adicionado**
+* `segurity.md` criado
